@@ -1,5 +1,7 @@
-export CUDA_VISIBLE_DEVICES=0
-
+export CUDA_VISIBLE_DEVICES=3
+export LD_PRELOAD=$CONDA_PREFIX/lib/libstdc++.so.6
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+source ../config.env.sh
 bs=8
 lr=2e-4
 dropout=0.1
@@ -22,7 +24,8 @@ L=yo
 for seed in 0 1 2
     do
         task_order=${A}_${B}_${C}_${D}_${E}_${F}_${G}_${H}_${I}_${J}_${K}_${L}
-        python3 src/run_continual_mtl_afrisenti.py \
+        python3 $path1 \
+            --dataset_path /workspace/nhitny/mcs/nlp/MoCL-NAACL-2024/datasets/afrisenti \
             --model_name_or_path Davlan/afro-xlmr-large \
             --cl_language_list $task_order \
             --continual_learning \
@@ -49,7 +52,8 @@ for seed in 0 1 2
 
         
         task_order=${F}_${G}_${E}_${H}_${D}_${I}_${C}_${J}_${B}_${K}_${A}_${L}
-        python3 src/run_continual_mtl_afrisenti.py \
+        python3 $path1 \
+            --dataset_path /workspace/nhitny/mcs/nlp/MoCL-NAACL-2024/datasets/afrisenti \
             --model_name_or_path Davlan/afro-xlmr-large \
             --cl_language_list $task_order \
             --continual_learning \
@@ -76,7 +80,8 @@ for seed in 0 1 2
 
 
         task_order=${A}_${B}_${C}_${F}_${D}_${E}_${I}_${J}_${K}_${L}_${G}_${H}
-        python3 src/run_continual_mtl_afrisenti.py \
+        python3 $path1 \
+            --dataset_path /workspace/nhitny/mcs/nlp/MoCL-NAACL-2024/datasets/afrisenti \
             --model_name_or_path Davlan/afro-xlmr-large \
             --cl_language_list $task_order \
             --continual_learning \
@@ -99,8 +104,5 @@ for seed in 0 1 2
             --seed $seed \
             --save_strategy epoch \
             --evaluation_strategy epoch \
-            --prefix
-
-
-        
+            --prefix  
     done

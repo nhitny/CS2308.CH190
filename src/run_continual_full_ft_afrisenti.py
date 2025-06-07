@@ -1,4 +1,4 @@
-""" Utility classes and functions related to MoCL (NAACL 2024).
+"""Utility classes and functions related to MoCL (NAACL 2024).
 Copyright (c) 2024 Robert Bosch GmbH
 
 This program is free software: you can redistribute it and/or modify
@@ -15,8 +15,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import sys
-sys.path.append(".")
-sys.path.append("../")
+
+# sys.path.append(".")
+# sys.path.append("../")
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+)  # Nhitny
+
 
 from transformers import AutoConfig, AutoTokenizer, set_seed
 from arguments import get_args
@@ -30,21 +35,23 @@ from tasks.afrisenti.dataloader_mtl import DataLoaderMTL
 if __name__ == "__main__":
     args = get_args()
     model_args, data_args, training_args = args
-    
+
     if not os.path.exists(training_args.output_dir):
         os.makedirs(training_args.output_dir, exist_ok=True)
-    
+
     logfile = os.path.join(training_args.output_dir, "log.txt")
     logger = set_logger(logfile)
-        
+
     config_path = os.path.join(training_args.output_dir, f"configs.json")
-    with open(config_path, "a", newline='\n') as f:
+    with open(config_path, "a", newline="\n") as f:
         f.write(f"\nmodel_args:\n {model_args}\n")
         f.write(f"\ndata_args:\n {data_args}\n")
         f.write(f"\ntraining_args:\n {training_args}\n")
-    
-    task_list = model_args.cl_language_list.split('_')
-    model_args.mtl_task_list = model_args.cl_language_list # TODO: make them consistent and delete this
+
+    task_list = model_args.cl_language_list.split("_")
+    model_args.mtl_task_list = (
+        model_args.cl_language_list
+    )  # TODO: make them consistent and delete this
     mode_list = ["train", "dev", "test"]
 
     task2labels = {t: ["positive", "neutral", "negative"] for t in task_list}
@@ -55,32 +62,34 @@ if __name__ == "__main__":
         num_labels += len(label_list[ti])
 
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
-    
+
     # Set seed before initializing model.
     seed = training_args.seed
     set_seed(seed)
-    
+
     config = AutoConfig.from_pretrained(
         model_args.model_name_or_path,
         num_labels=num_labels,
         revision=model_args.model_revision,
     )
-    
-    model_args.prompt_save_path = os.path.join(os.path.dirname(training_args.output_dir), "prompts")
+
+    model_args.prompt_save_path = os.path.join(
+        os.path.dirname(training_args.output_dir), "prompts"
+    )
     if not os.path.exists(model_args.prompt_save_path):
         os.mkdir(model_args.prompt_save_path)
-    
+
     model = get_model(
-        model_args, 
-        task_type=TaskType.SEQUENCE_CLASSIFICATION, 
-        config=config, 
+        model_args,
+        task_type=TaskType.SEQUENCE_CLASSIFICATION,
+        config=config,
         seed=seed,
-        mtl=True, 
+        mtl=True,
         max_seq_len=data_args.max_seq_length,
         output_dir=training_args.output_dir,
-        label_list=label_list
-        )
-    
+        label_list=label_list,
+    )
+
     dataloaders = DataLoaderMTL(
         data_args,
         training_args,
@@ -92,18 +101,18 @@ if __name__ == "__main__":
         data_args.pad_to_max_length,
         data_args.overwrite_cache,
     )
-    
-    train_dataloaders = {task: dataloaders[task]['train'] for task in task_list}
-    dev_dataloaders = {task: dataloaders[task]['dev'] for task in task_list}
-    test_dataloaders = {task: dataloaders[task]['test'] for task in task_list}
-    
+
+    train_dataloaders = {task: dataloaders[task]["train"] for task in task_list}
+    dev_dataloaders = {task: dataloaders[task]["dev"] for task in task_list}
+    test_dataloaders = {task: dataloaders[task]["test"] for task in task_list}
+
     trainer = ContinualTrainerMTL(
         training_args,
         model,
         logger,
         task_list,
         label_list,
-        data_args.early_stopping_patience if data_args.early_stop else -1
+        data_args.early_stopping_patience if data_args.early_stop else -1,
     )
     trainer.train(
         train_dataloaders,
